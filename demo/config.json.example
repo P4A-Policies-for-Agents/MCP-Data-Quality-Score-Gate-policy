@@ -1,0 +1,23 @@
+{
+  "cdgcLoginUrl": "https://dm-us.informaticacloud.com",
+  "cdgcApiUrl": "https://cdgc-api.dm-us.informaticacloud.com",
+  "cdgcOrgUsername": "<IDMC service-account username>",
+  "cdgcOrgPassword": "<IDMC service-account password>",
+  "mcpServerAssetId": "<CDGC asset id of the MCP Server>",
+  "toolClassTypes": [
+    "a2d.agentic.McpTool"
+  ],
+  "warnBelow": 90,
+  "blockBelow": 70,
+  "aggregation": "minimum",
+  "dimensions": [],
+  "honourRuleThresholds": true,
+  "maxScoreAgeHours": 168,
+  "staleAction": "warn",
+  "unscoredAction": "allow",
+  "enforcement": "block",
+  "scoreRefreshSeconds": 30,
+  "failOpenOnIdmcError": true,
+  "distributed": false,
+  "timeout": 5000
+}

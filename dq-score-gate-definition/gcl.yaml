@@ -1,0 +1,136 @@
+---
+apiVersion: gateway.mulesoft.com/v1alpha1
+kind: Extension
+metadata:
+  labels:
+    title: MCP Data Quality Score Gate
+    category: Quality of Service
+    description: >-
+      Gates MCP tool calls on Informatica CDGC data quality scores. Refuses tools
+      scoring below the block threshold before the upstream call; annotates results
+      below the warning threshold.
+    metadata/capabilities/injectionPoint: inbound
+    metadata/capabilities/assetTypes: mcp
+    metadata/interfaceScope: api
+spec:
+  extends:
+    - name: extension-definition
+      namespace: default
+  properties:
+    cdgcLoginUrl:
+      type: string
+      format: service
+      description: IDMC login base URL, e.g. https://dm-us.informaticacloud.com.
+    cdgcApiUrl:
+      type: string
+      format: service
+      description: >-
+        CDGC API base serving catalog search, e.g.
+        https://cdgc-api.dm-us.informaticacloud.com.
+    cdgcOrgUsername:
+      type: string
+      description: IDMC service-account username. Needs read access to the catalog.
+      "@context": { "@characteristics": [security:sensitive] }
+    cdgcOrgPassword:
+      type: string
+      description: IDMC service-account password.
+      "@context": { "@characteristics": [security:sensitive] }
+    mcpServerAssetId:
+      type: string
+      description: >-
+        CDGC asset id of the MCP Server this API exposes. Its MCP Tools are matched
+        to tools/call params.name by exact name. The data quality rule occurrences
+        catalogued under a tool (on the tool or on its output fields) are the tool's
+        scores.
+    toolClassTypes:
+      type: array
+      items:
+        type: string
+      default:
+        - a2d.agentic.McpTool
+      description: CDGC class types (core.classType) of the MCP Tools under the server.
+    warnBelow:
+      type: number
+      default: 90
+      minimum: 0
+      maximum: 100
+      description: A tool score below this (0-100) annotates the result with a warning.
+    blockBelow:
+      type: number
+      default: 70
+      minimum: 0
+      maximum: 100
+      description: >-
+        A tool score below this (0-100) refuses the call with a JSON-RPC error,
+        unless enforcement is annotate.
+    aggregation:
+      type: string
+      enum: [minimum, average]
+      default: minimum
+      description: >-
+        How a tool's rule scores combine into the tool score: minimum (the weakest
+        rule decides) or average.
+    dimensions:
+      type: array
+      items:
+        type: string
+      default: []
+      description: >-
+        Rule types (DQ dimensions) that count, e.g. Completeness, Validity,
+        Uniqueness. Empty = all.
+    honourRuleThresholds:
+      type: boolean
+      default: true
+      description: >-
+        A rule below its own CDGC threshold (or with threshold result Not
+        Acceptable) raises at least a warning, even when the tool score passes.
+    maxScoreAgeHours:
+      type: integer
+      default: 168
+      minimum: 0
+      description: >-
+        A rule last measured longer ago than this is stale. 0 = scores never go
+        stale.
+    staleAction:
+      type: string
+      enum: [ignore, warn, block]
+      default: warn
+      description: What a stale rule score does to the verdict.
+    unscoredAction:
+      type: string
+      enum: [allow, warn, block]
+      default: allow
+      description: What happens to a catalogued tool with no data quality rules.
+    enforcement:
+      type: string
+      enum: [block, annotate]
+      default: block
+      description: >-
+        block refuses calls below blockBelow. annotate never refuses; a would-be
+        block is reported as a warning with wouldBlock true.
+    scoreRefreshSeconds:
+      type: integer
+      default: 300
+      minimum: 30
+      description: Cache TTL for the MCP server's tools and data quality scores.
+    failOpenOnIdmcError:
+      type: boolean
+      default: true
+      description: >-
+        With no cached scores (IDMC unreachable), true lets the call through
+        (x-dq-status unavailable); false refuses it. Stale cached scores are
+        always used when a refresh fails.
+    distributed:
+      type: boolean
+      default: false
+      description: Share caches and refresh locks across replicas (needs shared storage).
+    timeout:
+      type: integer
+      default: 5000
+      description: Per-call IDMC timeout (ms), clamped to a chained refresh budget (~15s).
+  required:
+    - cdgcLoginUrl
+    - cdgcApiUrl
+    - cdgcOrgUsername
+    - cdgcOrgPassword
+    - mcpServerAssetId
